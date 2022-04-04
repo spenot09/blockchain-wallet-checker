@@ -49,3 +49,10 @@ tg = TigergraphAPI(HOST, GRAPH_NAME, TG_USERNAME, TG_PASSWORD, API_TOKEN)
 score = tg.get_wallet_score(
     wallet=target_wallet, installed_query="TestQuery", network=network
 )
+
+try:
+    float(score)
+    print(f"{target_wallet} has received a safety score of {score}/10")
+except ValueError as e:
+    print("Currently unable to retrieve a safety score for the target wallet")
+    print(f"ValueError: {e}")

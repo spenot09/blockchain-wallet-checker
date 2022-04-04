@@ -44,9 +44,7 @@ def data():
             wallet=target_wallet, installed_query="TestQuery", network=network
         )
 
-        return render_template(
-            "data.html", form_data={target_wallet: score}
-        )
+        return render_template("data.html", form_data={target_wallet: score})
 
 
 app.run(host="localhost", port=5000)
