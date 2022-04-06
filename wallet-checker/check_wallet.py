@@ -9,10 +9,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
+TG_USERNAME = "test_fail"
 TG_USERNAME = os.getenv("TG_USERNAME")
 TG_PASSWORD = os.getenv("TG_PASSWORD")
-API_TOKEN = os.getenv("API_TOKEN")
+SECRET = os.getenv("SECRET")
 
 # Create the parser
 my_parser = argparse.ArgumentParser(description="Check the safety of a target wallet")
@@ -45,9 +45,9 @@ print(f"Checking on the {network} network")
 HOST = constants[network]["host"]
 GRAPH_NAME = constants[network]["graph_name"]
 
-tg = TigergraphAPI(HOST, GRAPH_NAME, TG_USERNAME, TG_PASSWORD, API_TOKEN)
+tg = TigergraphAPI(HOST, GRAPH_NAME, TG_USERNAME, TG_PASSWORD, SECRET)
 score = tg.get_wallet_score(
-    wallet=target_wallet, installed_query="TestQuery", network=network
+    wallet=target_wallet, installed_query_name="TestQuery", network=network
 )
 
 try:

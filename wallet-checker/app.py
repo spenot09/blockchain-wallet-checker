@@ -9,7 +9,7 @@ load_dotenv()
 
 TG_USERNAME = os.getenv("TG_USERNAME")
 TG_PASSWORD = os.getenv("TG_PASSWORD")
-API_TOKEN = os.getenv("API_TOKEN")
+SECRET = os.getenv("SECRET")
 
 
 app = Flask(__name__)
@@ -39,7 +39,7 @@ def data():
         HOST = constants[network]["host"]
         GRAPH_NAME = constants[network]["graph_name"]
 
-        tg = TigergraphAPI(HOST, GRAPH_NAME, TG_USERNAME, TG_PASSWORD, API_TOKEN)
+        tg = TigergraphAPI(HOST, GRAPH_NAME, TG_USERNAME, TG_PASSWORD, SECRET)
         score = tg.get_wallet_score(
             wallet=target_wallet, installed_query="TestQuery", network=network
         )

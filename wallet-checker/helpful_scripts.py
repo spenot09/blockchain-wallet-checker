@@ -1,6 +1,19 @@
 import pyTigerGraph as tg
 import functools
 import time
+import traceback
+import sys
+
+
+from constants import constants
+import os
+
+network = "ethereum"
+TG_USERNAME = os.getenv("TG_USERNAME")
+TG_PASSWORD = os.getenv("TG_PASSWORD")
+HOST = constants[network]["host"]
+GRAPH_NAME = constants[network]["graph_name"]
+SECRET = os.getenv(f"SECRET_{GRAPH_NAME.upper()}_GRAPH")
 
 
 def timer(func):
@@ -22,20 +35,29 @@ class TigergraphAPI:
     Class to interact with TigerGraph API and take care of connections and safety score retrieval.
     """
 
-    def __init__(self, host, graphname, username, password, apiToken):
+    def __init__(self, host, graphname, username, password, secret):
         self.host = host
         self.graphname = graphname
         self.username = username
         self.password = password
-        self.apiToken = apiToken
+
+        graph = tg.TigerGraphConnection(
+            host=self.host,
+            graphname=self.graphname,
+        )
+        self.authToken = graph.getToken(secret)[0]
 
         self.conn = tg.TigerGraphConnection(
             host=self.host,
             graphname=self.graphname,
             username=self.username,
             password=self.password,
-            apiToken=self.apiToken,
+            apiToken=self.authToken,
         )
+
+    @timer
+    def is_successfully_connected(self):
+        return self.conn.getEndpoints() is not None
 
     @timer
     def query(self, gsql_query):
@@ -62,29 +84,47 @@ class TigergraphAPI:
         )
 
     @timer
-    def check_if_query_installed(self, installed_query_name):
-        # TODO: Figure out how to check if a query has been installed already
-        is_installed = True
-        return is_installed
+    def list_installed_queries(self):
+        return [key.split("/")[-1] for key in self.conn.getInstalledQueries().keys()]
 
     @timer
-    def get_wallet_score(self, wallet, installed_query_name, network):
+    def is_query_installed(self, installed_query_name):
+        return installed_query_name in self.list_installed_queries()
+
+    @timer
+    def get_wallet_score(self, installed_query_name, query_params):
         """
         Retrieve the target wallet score by injecting it as a parameter into the previously installed query.
         """
 
-        if not self.check_if_query_installed(installed_query_name):
-
+        if not self.is_query_installed(installed_query_name):
+            print(
+                f"{installed_query_name} hasn't been installed yet. Please install chosen query with the install_query(query_to_install, name) method"
+            )
             result = f"{installed_query_name} hasn't been installed yet. Please install chosen query with the install_query(query_to_install, name) method"
 
         try:
-            result = self.conn.gsql(
-                f'run query {installed_query_name}("{wallet}", "{network}")'
-            )
-            print(
-                f"Target wallet has been assigned a score of {q}/10, 0 being the worst safety score, 10 being the highest safety score"
-            )
-        except:
-            result = "Couldn't access query at the moment"
+            formatted_query_params = '","'.join(query_params).join(('"', '"'))
+        except Exception:
+            print(traceback.format_exc())
+            # or
+            print(sys.exc_info()[2])
+            print("""Query parameters are formatted incorrectly, please provide a tuple in the correct order the target query expects (e.g. ("Wallet", "sending_payment", "receiving_payment")""")
+            return
 
-        return result
+        try:
+            result = self.conn.gsql(
+                f"run query {installed_query_name}({formatted_query_params})"
+            )
+            return result
+        except Exception:
+            print(traceback.format_exc())
+            # or
+            print(sys.exc_info()[2])
+            print ("Couldn't access query at the moment")
+            return 
+
+        
+
+
+tg = TigergraphAPI(HOST, GRAPH_NAME, TG_USERNAME, TG_PASSWORD, SECRET)

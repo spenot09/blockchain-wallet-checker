@@ -26,7 +26,7 @@ Now within the root create a new file called `.env`  (literally just .env). With
 ```
 TG_USERNAME=<username>
 TG_PASSWORD=<password>
-API_TOKEN=<api token>
+SECRET=<api token>
 ```
 
 An example `.env.example` is provided with non-genuine credentials.
