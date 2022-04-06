@@ -92,7 +92,7 @@ class TigergraphAPI:
         return installed_query_name in self.list_installed_queries()
 
     @timer
-    def get_wallet_score(self, installed_query_name, query_params):
+    def get_wallet_score(self, installed_query_name: str, query_params: dict):
         """
         Retrieve the target wallet score by injecting it as a parameter into the previously installed query.
         """
@@ -104,27 +104,20 @@ class TigergraphAPI:
             result = f"{installed_query_name} hasn't been installed yet. Please install chosen query with the install_query(query_to_install, name) method"
 
         try:
-            formatted_query_params = '","'.join(query_params).join(('"', '"'))
-        except Exception:
-            print(traceback.format_exc())
-            # or
-            print(sys.exc_info()[2])
-            print("""Query parameters are formatted incorrectly, please provide a tuple in the correct order the target query expects (e.g. ("Wallet", "sending_payment", "receiving_payment")""")
-            return
-
-        try:
-            result = self.conn.gsql(
-                f"run query {installed_query_name}({formatted_query_params})"
-            )
+            result = self.conn.runInstalledQuery(installed_query_name, query_params)[0]
             return result
+
         except Exception:
             print(traceback.format_exc())
             # or
             print(sys.exc_info()[2])
-            print ("Couldn't access query at the moment")
-            return 
-
-        
+            print("Couldn't access query at the moment")
+            return
 
 
 tg = TigergraphAPI(HOST, GRAPH_NAME, TG_USERNAME, TG_PASSWORD, SECRET)
+query_params = {
+    "v_type": "Wallet",
+    "e_type": "sending_payment",
+    "re_type": "receiving_payment",
+}
