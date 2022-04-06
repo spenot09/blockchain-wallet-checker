@@ -114,10 +114,11 @@ class TigergraphAPI:
             print("Couldn't access query at the moment")
             return
 
-
-tg = TigergraphAPI(HOST, GRAPH_NAME, TG_USERNAME, TG_PASSWORD, SECRET)
-query_params = {
-    "v_type": "Wallet",
-    "e_type": "sending_payment",
-    "re_type": "receiving_payment",
-}
+if __name__ == "main":
+    tg_instance = TigergraphAPI(HOST, GRAPH_NAME, TG_USERNAME, TG_PASSWORD, SECRET)
+    query_params = {
+        "v_type": "Wallet",
+        "e_type": "sending_payment",
+        "re_type": "receiving_payment",
+    }
+    tg_instance.get_wallet_score("Degree", query_params)
