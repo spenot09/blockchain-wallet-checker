@@ -47,7 +47,7 @@ python wallet-checker/check_wallet.py -h
 **Option 2:** Or if you prefer to navigate the tool via the front-end simply run the following in your command line (various other terminal options are available here: https://flask.palletsprojects.com/en/2.0.x/quickstart/)
 
 ```
-set FLASK_APP=walletChecker/app
+set FLASK_APP=wallet-checker/app
 flask run
 ```
 This will run a host locally on your machine. If you now navigate to http://127.0.0.1:5000/ in your browser you have accessed the front-end of the tool!

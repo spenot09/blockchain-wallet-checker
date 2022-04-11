@@ -1,3 +1,103 @@
 form {
-    text-align: center;
+    text-align: left;
+    padding: 170px 0;
+  }
+
+body, html { min-height: 100%; }
+body {
+	color: white;
+	background: url(background.jpg) center no-repeat;
+	background-size: cover;
+	background-color: #444;
+  overflow-y: hidden; /* Hide vertical scrollbar */
+  overflow-x: hidden; /* Hide horizontal scrollbar */
+}
+div#stmark {
+	width: 40%;
+	background: rgba(0,0,0,0.6);
+	border: 5px double white;
+	margin: 3em;
+	padding: 2em 2em 0 2em;
+	float: right;
+	line-height: 155%;
+	font-family: Cochin, Times New Roman, Times, serif;
+}
+div#stmark h1 {
+	margin-top: 0;
+}
+select {
+  padding:5px; 
+  border:2px solid #ccc; 
+  -webkit-border-radius: 5px;
+  border-radius: 5px;
+}
+input[type=text] {
+  padding:5px; 
+  border:2px solid #ccc; 
+  -webkit-border-radius: 5px;
+  border-radius: 5px;
+}
+input[type=text] {
+  padding:5px; 
+  border:2px solid #ccc; 
+  -webkit-border-radius: 5px;
+  border-radius: 5px;
+}
+
+input[type=text]:focus {
+  border-color:#333;
+}
+
+input[type=submit] {
+  padding:5px 15px; 
+  background:#ccc; 
+  border:1px solid #eee;
+  cursor:pointer;
+  -webkit-border-radius: 5px;
+  border-radius: 5px; 
+  border: 1px solid #eee;
+}
+
+input[type=submit]:hover {
+  background: #016ABC;
+  color: #fff;
+  border: 1px solid #eee;
+  border-radius: 5px;
+  box-shadow: 1px 1px 1px #eee;
+  text-shadow: none;
+}
+
+.form-submit-button {
+  background: #B9DFFF;
+  color: #fff;
+  border: 1px solid #eee;
+  border-radius: 20px;
+  box-shadow: 5px 5px 5px #eee;
+  text-shadow: none;
+  }
+  .form-submit-button:hover {
+  background: #016ABC;
+  color: #fff;
+  border: 1px solid #eee;
+  border-radius: 20px;
+  box-shadow: 5px 5px 5px #eee;
+  text-shadow: none;
+  }
+
+  .select-items div,.select-selected {
+    color: #ffffff;
+    padding: 8px 16px;
+    border: 1px solid transparent;
+    border-color: transparent transparent rgba(0, 0, 0, 0.1) transparent;
+    cursor: pointer;
+  }
+  
+  /* Style items (options): */
+  .select-items {
+    position: absolute;
+    background-color: DodgerBlue;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 99;
   }

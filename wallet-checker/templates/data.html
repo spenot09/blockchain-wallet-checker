@@ -1,4 +1,6 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 {% for key,value in form_data.items() %}
-<h2> Target wallet: {{key}}</h2>
+<h1>Target wallet</h1>
+<h2>{{key}}</h2>
 <p> Score: {{value}}/10</p>
 {% endfor %}

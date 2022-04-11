@@ -9,7 +9,7 @@ load_dotenv()
 
 TG_USERNAME = os.getenv("TG_USERNAME")
 TG_PASSWORD = os.getenv("TG_PASSWORD")
-SECRET = os.getenv("SECRET")
+SECRET = os.getenv("SECRET_KMTEST_GRAPH")
 
 
 app = Flask(__name__)
@@ -31,7 +31,13 @@ def data():
         form_data = request.form
 
         target_wallet = form_data["Target wallet"]
-        network = form_data["Network"]
+        network = form_data["Network"].lower()
+
+        query_params = {
+            "v_type": "Wallet",
+            "e_type": "sending_payment",
+            "re_type": "receiving_payment",
+        }
 
         print(f"Target wallet: {target_wallet}")
         print(f"Checking on the {network} network")
@@ -41,7 +47,7 @@ def data():
 
         tg = TigergraphAPI(HOST, GRAPH_NAME, TG_USERNAME, TG_PASSWORD, SECRET)
         score = tg.get_wallet_score(
-            wallet=target_wallet, installed_query="TestQuery", network=network
+            installed_query_name="Degree", query_params=query_params
         )
 
         return render_template("data.html", form_data={target_wallet: score})
