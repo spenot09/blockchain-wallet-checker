@@ -10,6 +10,12 @@ Blockchain Wallet Checker allows you to verify the safety of a target wallet bef
 # Getting started
 Before you get started, please reach out to the team to get credentials to be able to access the TigerGraph database so as to allow the scores to be calculated. Without these credentials you will not be able to access the backend, and hence won't be able to use the tool.
 
+Ensure you have Microsoft C++ Build Tools installed (which can be installed here https://visualstudio.microsoft.com/visual-cpp-build-tools/) as some of the python libraries require it, otherwise you may have an error:
+
+```
+Microsoft Visual C++ 14.0 or greater is required. Get it with "Microsoft C++ Build Tools": https://visualstudio.microsoft.com/visual-cpp-build-tools/
+```
+
 ## Step 1.
 1. Create a new python environment
 2. Clone this repository 
@@ -26,7 +32,8 @@ Now within the root create a new file called `.env`  (literally just .env). With
 ```
 TG_USERNAME=<username>
 TG_PASSWORD=<password>
-SECRET=<api token>
+SECRET_ETH_GRAPH=<api token>
+SECRET_KMTEST_GRAPH=<api token>
 ```
 
 An example `.env.example` is provided with non-genuine credentials.
@@ -53,5 +60,7 @@ flask run
 This will run a host locally on your machine. If you now navigate to http://127.0.0.1:5000/ in your browser you have accessed the front-end of the tool!
 
 Now you can enter your chosen wallet address to receive a score.
+
+# TODO: Write up queries available as parameters
 
 

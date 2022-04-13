@@ -3,10 +3,10 @@ import functools
 import time
 import traceback
 import sys
-
+import os
 
 from constants import constants
-import os
+
 
 network = "ethereum"
 TG_USERNAME = os.getenv("TG_USERNAME")
@@ -113,6 +113,7 @@ class TigergraphAPI:
             print(sys.exc_info()[2])
             print("Couldn't access query at the moment")
             return
+
 
 if __name__ == "main":
     tg_instance = TigergraphAPI(HOST, GRAPH_NAME, TG_USERNAME, TG_PASSWORD, SECRET)
