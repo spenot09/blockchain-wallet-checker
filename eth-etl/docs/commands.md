@@ -231,7 +231,7 @@ instructions on deploying it to Kubernetes.
 Stream blockchain data continually to Google Pub/Sub:
 
 ```bash
-> export GOOGLE_APPLICATION_CREDENTIALS=/path_to_credentials_file.json
+> export GOOGLE_app_CREDENTIALS=/path_to_credentials_file.json
 > ethereumetl stream --start-block 500000 --output projects/<your-project>/topics/crypto_ethereum
 ```
 
