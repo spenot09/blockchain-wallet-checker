@@ -35,22 +35,11 @@ my_parser.add_argument(
 my_parser.add_argument(
     "--query",
     metavar="Q",
-    default="Degree",
+    default="WalletScore_Query",
     type=str,
     help="the query you want to use to retrieve the required score. Refer to the README.md to understand the various scores available",
 )
 
-my_parser.add_argument(
-    "--queryParameters",
-    metavar="QP",
-    default={
-        "v_type": "Wallet",
-        "e_type": "sending_payment",
-        "re_type": "receiving_payment",
-    },
-    type=str,
-    help="the required parameters for the selected query, in the form of key-value pairs",
-)
 
 args = vars(my_parser.parse_args())
 
@@ -58,8 +47,6 @@ args = vars(my_parser.parse_args())
 target_wallet = args["wallet"]
 network = args["network"]
 query_to_run = args["query"]
-print(args["queryParameters"])
-query_params = json.loads(args["queryParameters"])
 
 """
 example query parameters for the "Degree" query
@@ -78,16 +65,25 @@ GRAPH_NAME = constants[network]["graph_name"]
 
 
 tg_instance = TigergraphAPI(HOST, GRAPH_NAME, TG_USERNAME, TG_PASSWORD, SECRET)
-result_dict = tg_instance.get_wallet_score(query_to_run, query_params)
-
-score = result_dict["wallet"][0]["attributes"]["transaction_count"]
+result_dict = tg_instance.get_wallet_score(
+    query_to_run, {"target_wallet": target_wallet}
+)
 
 try:
-    max_score = result_dict["wallet"][0]["attributes"]["max_count"]
+    score = result_dict["wallet"][0]["attributes"]["transaction_count"]
 except:
-    max_score = 100
+    print(f"{target_wallet} is not available in the current graph")
+    quit()
+
 
 if query_to_run == "WalletScore_Query":
+    try:
+        max_score = tg_instance.get_wallet_score("Top1_Wallet", {})["wallet"][0][
+            "attributes"
+        ]["transaction_count"]
+    except:
+        max_score = 100
+
     print(
         f"The target wallet {target_wallet} has received a score of {score} out of {max_score}"
     )
