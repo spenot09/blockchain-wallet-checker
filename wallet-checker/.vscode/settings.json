@@ -1,0 +1,4 @@
+{
+    "appService.defaultWebAppToDeploy": "/subscriptions/1dd6c589-975c-48ca-b41e-b629697f5592/resourceGroups/appsvc_linux_centralus/providers/Microsoft.Web/sites/tg-wallet-checker",
+    "appService.deploySubpath": "."
+}
