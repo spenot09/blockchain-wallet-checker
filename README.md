@@ -5,7 +5,9 @@ Hacks and other malicious activity are rampant within the DeFi and public blockc
 - honeypot contracts (smart contracts that prevent withdrawal of funds, e.g. being able to buy a token but only the development team being able to sell) 
 - there are many other forms of malicious activity that target retail and the less sophisticated blockchain users
 
-Blockchain Wallet Checker allows you to verify the safety of a target wallet before you make a transaction on a public blockchain. On the backend, a TigerGraph based graph hosts nodes and transactions which are analysed to identify potentially fraudulent wallets or wallets whose activity may appear suspicious. This is communicated back to the end-user as a score between 0-10 where the higher the score the safer the target wallet is assumed to be.
+Blockchain Wallet Checker allows you to verify the safety of a target wallet before you make a transaction on a public blockchain. On the backend, a TigerGraph based graph hosts nodes and transactions which are analysed to identify potentially fraudulent wallets or wallets whose activity may appear suspicious. This is communicated back to the end-user as a score where the higher the score the safer the target wallet is assumed to be.
+
+This score is determined by a custom centrality algorithm that was designed after discovering a correlation  between healthy wallet activity on a network and its trustworthiness. After experimenting with several prebuilt solutions such as Eigen Vectors, Harmonic Centrality, and Page Rank amongst others, this correlated relationship is captured by examining the Degree of a specific target wallet within the network (currently Ethereum only but with scope to easily expand this).
 
 # Getting started
 Before you get started, please reach out to the team to get credentials to be able to access the TigerGraph database so as to allow the scores to be calculated. Without these credentials you will not be able to access the backend, and hence won't be able to use the tool.
