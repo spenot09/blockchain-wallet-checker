@@ -62,7 +62,8 @@ def data():
             except:
                 max_score = 100
 
-            score = f"The target wallet {target_wallet} has received a score of {score} out of {max_score}"
+            score = score * 10 / max_score
+            score = f"The target wallet {target_wallet} has received a score of {score} out of 10.0"
 
         return render_template("data.html", form_data={target_wallet: score})
 

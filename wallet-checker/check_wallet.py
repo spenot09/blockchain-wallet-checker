@@ -84,8 +84,10 @@ if query_to_run == "WalletScore_Query":
     except:
         max_score = 100
 
+    score = score * 10 / max_score
+
     print(
-        f"The target wallet {target_wallet} has received a score of {score} out of {max_score}"
+        f"The target wallet {target_wallet} has received a score of {score} out of 10.0. Please refer to the README for an interpretation of this score."
     )
 
 

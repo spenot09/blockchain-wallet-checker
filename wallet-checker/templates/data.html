@@ -3,4 +3,16 @@
 <h1>Target wallet</h1>
 <h2>{{key}}</h2>
 <p> {{value}}</p>
+<p> The score above can be divided into the following groups: </p>
+<ul>
+    <li>Scores between 0.0 and 1.0 are extremely unsafe wallets and should be heavily researched before interacted with.
+        Best to avoid.</li>
+    <li>Scores less than 2.0 are considered to be untrusted and caution should be exercised.</li>
+    <li>Scores less than 4.0 may indicate wallets that have exhibited questionable activity at some point but are not a
+        risk.</li>
+    <li>Scores less than 7.0 are wallets that have shown healthy network behaviour and can be considered trustworthy.
+    </li>
+    <li>Scores greater than 7.0 are extremely healthy wallets and have demonstrated to be crucial to the network (e.g.
+        Uniswap contracts, DeFi protocols, etc.).</li>
+</ul>
 {% endfor %}
