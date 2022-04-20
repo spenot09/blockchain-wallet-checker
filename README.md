@@ -92,6 +92,5 @@ This will run a host locally on your machine. If you now navigate to http://127.
 
 Now you can enter your chosen wallet address to receive a score.
 
-# TODO: Write up queries available as parameters
 
 
