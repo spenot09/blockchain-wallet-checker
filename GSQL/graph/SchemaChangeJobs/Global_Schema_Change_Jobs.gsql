@@ -1,0 +1,20 @@
+CREATE GLOBAL SCHEMA_CHANGE JOB global_schema_change_1045937625 {
+      ALTER VERTEX vertex_type_1 DROP ATTRIBUTE (block_hash, block_timestamp);
+    }
+
+CREATE GLOBAL SCHEMA_CHANGE JOB global_schema_change_357309469 {
+      ALTER EDGE edge_type_1 ADD ATTRIBUTE (block_hash STRING, block_timestamp DATETIME);
+    }
+
+CREATE GLOBAL SCHEMA_CHANGE JOB global_schema_change_1347003350 {
+      ALTER EDGE edge_type_1 ADD ATTRIBUTE (from_address STRING, to_address STRING);
+    }
+
+CREATE GLOBAL SCHEMA_CHANGE JOB global_schema_change_468926366 {
+      ALTER VERTEX vertex_type_1 DROP ATTRIBUTE (from_address, to_address);
+    }
+
+CREATE GLOBAL SCHEMA_CHANGE JOB global_schema_change_908301054 {
+      ALTER EDGE edge_type_1 DROP ATTRIBUTE (from_address, to_address);
+    }
+

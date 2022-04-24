@@ -1,0 +1,687 @@
+CREATE GRAPH kmtest()
+CREATE SCHEMA_CHANGE JOB schema_change_job_AddExportedLocalVETypes_JT8B8XV85X78MVIO FOR GRAPH kmtest { 
+  ADD VERTEX Wallet(PRIMARY_ID address STRING, sum_in FLOAT, sum_out FLOAT, net_balance FLOAT, wallet_id STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+  ADD VERTEX transaction(PRIMARY_ID transaction_id STRING, value FLOAT, gas FLOAT, gas_price FLOAT, block_timestamp STRING, hash STRING, nonce INT, block_hash STRING, block_number INT) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+  ADD VERTEX year(PRIMARY_ID transaction_year INT) WITH STATS="OUTDEGREE_BY_EDGETYPE", PRIMARY_ID_AS_ATTRIBUTE="false";
+  ADD VERTEX month(PRIMARY_ID transaction_month INT) WITH STATS="OUTDEGREE_BY_EDGETYPE", PRIMARY_ID_AS_ATTRIBUTE="false";
+  ADD VERTEX day(PRIMARY_ID transaction_day INT) WITH STATS="OUTDEGREE_BY_EDGETYPE", PRIMARY_ID_AS_ATTRIBUTE="false";
+  ADD VERTEX block(PRIMARY_ID block_hash STRING, block_number INT) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+  ADD DIRECTED EDGE sending_payment(FROM Wallet, TO transaction) WITH REVERSE_EDGE="reverse_sending_payment";
+  ADD DIRECTED EDGE receiving_payment(FROM transaction, TO Wallet);
+  ADD DIRECTED EDGE year_edge(FROM block, TO year) WITH REVERSE_EDGE="reverse_year_edge";
+  ADD DIRECTED EDGE month_edge(FROM block, TO month) WITH REVERSE_EDGE="reverse_month_edge";
+  ADD DIRECTED EDGE day_edge(FROM block, TO day) WITH REVERSE_EDGE="reverse_day_edge";
+  ADD DIRECTED EDGE block_edge(FROM transaction, TO block) WITH REVERSE_EDGE="reverse_block_edge";
+}
+RUN SCHEMA_CHANGE JOB schema_change_job_AddExportedLocalVETypes_JT8B8XV85X78MVIO
+DROP JOB schema_change_job_AddExportedLocalVETypes_JT8B8XV85X78MVIO
+set exit_on_error = "false"
+CREATE LOADING JOB load_job_transactions0_500000_csv_1648202443915 FOR GRAPH kmtest {
+      DEFINE FILENAME MyDataSource;
+      LOAD MyDataSource TO VERTEX transaction VALUES($0, $7, $8, $9, $11, $0, $1, $2, $3) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO VERTEX block VALUES($2, $3) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO VERTEX Wallet VALUES($5, _, _, _, $5) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO EDGE receiving_payment VALUES($0, $6) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO EDGE sending_payment VALUES($5, $0) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO EDGE block_edge VALUES($0, $2) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO EDGE year_edge VALUES($2, gsql_year_epoch($11)) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO EDGE month_edge VALUES($2, gsql_month_epoch($11)) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO EDGE day_edge VALUES($2, gsql_day_epoch($11)) USING SEPARATOR=",", HEADER="true", EOL="\n";
+    }
+
+set exit_on_error = "true"
+set exit_on_error = "false"
+CREATE LOADING JOB load_job_test_eth2_csv_1649417702558 FOR GRAPH kmtest {
+      DEFINE FILENAME MyDataSource;
+      LOAD MyDataSource TO VERTEX transaction VALUES($0, $7, $8, $9, $11, $0, $1, $2, $3) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO VERTEX block VALUES($2, $3) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO VERTEX Wallet VALUES($5, _, _, _, $5) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO EDGE sending_payment VALUES($5, $0) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO EDGE receiving_payment VALUES($0, $6) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO EDGE block_edge VALUES($0, $2) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO EDGE year_edge VALUES($2, gsql_year_epoch($11)) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO EDGE month_edge VALUES($2, gsql_month_epoch($11)) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO EDGE day_edge VALUES($2, gsql_day_epoch($11)) USING SEPARATOR=",", HEADER="true", EOL="\n";
+    }
+
+set exit_on_error = "true"
+set exit_on_error = "false"
+CREATE QUERY Top1_Wallet() FOR GRAPH kmtest API("v2") SYNTAX v2 {
+
+  SetAccum<vertex> @Agg_1_transaction_count_set;
+  SumAccum<int> @Agg_1_transaction_count;
+
+  VertexSet_1 = 
+        SELECT wallet
+        FROM Wallet:wallet -(sending_payment>:alias_schema_3)- transaction:t
+        ACCUM wallet.@Agg_1_transaction_count_set += t
+        POST-ACCUM wallet.@Agg_1_transaction_count = wallet.@Agg_1_transaction_count_set.size()
+        ORDER BY wallet.@Agg_1_transaction_count DESC
+        LIMIT 1
+        ;
+
+
+  PRINT VertexSet_1[
+    VertexSet_1.sum_in AS sum_in,
+    VertexSet_1.sum_out AS sum_out,
+    VertexSet_1.net_balance AS net_balance,
+    VertexSet_1.wallet_id AS wallet_id,
+    VertexSet_1.@Agg_1_transaction_count AS transaction_count
+  ] AS wallet;
+
+}
+CREATE QUERY page_rank (STRING v_type, STRING e_type,
+ FLOAT max_change=0.001, INT max_iter=25, FLOAT damping=0.85, INT top_k = 100,
+ BOOL print_accum = TRUE, STRING result_attr =  "", STRING file_path = "",
+ BOOL display_edges = FALSE) SYNTAX V1 {
+
+/*
+ Compute the pageRank score for each vertex in the GRAPH
+ In each iteration, compute a score for each vertex:
+     score = (1-damping) + damping*sum(received scores FROM its neighbors).
+ The pageRank algorithm stops when either of the following is true:
+ a) it reaches max_iter iterations;
+ b) the max score change for any vertex compared to the last iteration <= max_change.
+ v_type: vertex types to traverse          print_accum: print JSON output
+ e_type: edge types to traverse            result_attr: INT attr to store results to
+ max_iter; max #iterations                 file_path: file to write CSV output to
+ top_k: #top scores to output              display_edges: output edges for visualization
+ max_change: max allowed change between iterations to achieve convergence
+ damping: importance of traversal vs. random teleport
+
+ This query supports only taking in a single edge for the time being (8/13/2020).
+*/
+TYPEDEF TUPLE<VERTEX Vertex_ID, FLOAT score> Vertex_Score;
+HeapAccum<Vertex_Score>(top_k, score DESC) @@top_scores_heap;
+MaxAccum<FLOAT> @@max_diff = 9999;    # max score change in an iteration
+SumAccum<FLOAT> @sum_recvd_score = 0; # sum of scores each vertex receives FROM neighbors
+SumAccum<FLOAT> @sum_score = 1;           # initial score for every vertex is 1.
+SetAccum<EDGE> @@edge_set;             # list of all edges, if display is needed
+FILE f (file_path);
+
+# PageRank iterations  
+Start = {v_type};                     # Start with all vertices of specified type(s)
+WHILE @@max_diff > max_change 
+    LIMIT max_iter DO
+        @@max_diff = 0;
+    V = SELECT s
+  FROM Start:s -(e_type:e)- v_type:t
+  ACCUM 
+            t.@sum_recvd_score += s.@sum_score/(s.outdegree(e_type)) 
+  POST-ACCUM 
+            s.@sum_score = (1.0-damping) + damping * s.@sum_recvd_score,
+      s.@sum_recvd_score = 0,
+      @@max_diff += abs(s.@sum_score - s.@sum_score');
+END; # END WHILE loop
+
+# Output
+IF file_path != "" THEN
+    f.println("Vertex_ID", "PageRank");
+END;
+V = SELECT s 
+    FROM Start:s
+    POST-ACCUM 
+        IF result_attr != "" THEN 
+            s.setAttr(result_attr, s.@sum_score) 
+        END,
+   
+  IF file_path != "" THEN 
+            f.println(s, s.@sum_score) 
+        END,
+   
+  IF print_accum THEN 
+            @@top_scores_heap += Vertex_Score(s, s.@sum_score) 
+        END;
+
+IF print_accum THEN
+    PRINT @@top_scores_heap;
+    IF display_edges THEN
+        PRINT Start[Start.@sum_score];
+  Start = SELECT s
+          FROM Start:s -(e_type:e)- v_type:t
+          ACCUM @@edge_set += e;
+        PRINT @@edge_set;
+    END;
+END;
+}
+CREATE QUERY DegreeTargetWallet(SET<STRING> v_type, SET<STRING> e_type, SET<STRING> re_type, BOOL in_degree = TRUE, BOOL out_degree = TRUE,
+  INT top_k=100, BOOL print_accum = TRUE, STRING result_attr = "",STRING file_path = "", STRING target_wallet) SYNTAX V1 {
+
+  /* Compute degree Centrality for each VERTEX.
+  Parameters:
+  v_type: vertex types to traverse
+  e_type: edge types to traverse
+  re_type: for indegree use
+  in_degree: if you want to count incoming relationships, set it to TRUE
+  out_degree: if you want to count outcoming relationships, set it to TRUE
+  top_k: report only this many top scores          print_accum: weather print the result
+  result_attr: attribute to write result to        file_path: file to write CSV output to
+  for undirected graph, you only need to set e_type and indegree
+   */
+  TYPEDEF TUPLE<VERTEX Vertex_ID, FLOAT score> Vertex_Score;
+  HeapAccum<Vertex_Score>(top_k, score DESC) @@top_scores_heap;
+  SumAccum<INT> @sum_degree_score;
+  FILE f (file_path);
+
+  all = {v_type};
+  sll = SELECT s 
+        FROM all:s
+        ACCUM IF in_degree THEN
+                 FOREACH edge_type in re_type DO
+                     s.@sum_degree_score+=s.outdegree(edge_type)
+                 END
+              END,
+              IF out_degree THEN
+                  FOREACH edge_type in e_type DO
+                      s.@sum_degree_score+=s.outdegree(edge_type)
+                  END
+              END;
+  #Output
+  IF file_path != "" THEN
+      f.println("Vertex_ID", "Degree");
+  END;
+
+  Start = SELECT s 
+          FROM all:s
+    POST-ACCUM
+        IF result_attr != "" THEN 
+                  s.setAttr(result_attr, s.@sum_degree_score) 
+              END,
+    
+        IF print_accum THEN 
+                  @@top_scores_heap += Vertex_Score(s, s.@sum_degree_score) 
+              END,
+    
+        IF file_path != "" THEN 
+                  f.println(s, s.@sum_degree_score) 
+              END;
+        
+   IF print_accum THEN
+       PRINT @@top_scores_heap AS top_scores;
+   END;
+}
+CREATE QUERY Degree(SET<STRING> v_type, SET<STRING> e_type, SET<STRING> re_type, BOOL in_degree = TRUE, BOOL out_degree = TRUE,
+  INT top_k=100, BOOL print_accum = TRUE, STRING result_attr = "",STRING file_path = "") SYNTAX V1 {
+
+  /* Compute degree Centrality for each VERTEX.
+  Parameters:
+  v_type: vertex types to traverse
+  e_type: edge types to traverse
+  re_type: for indegree use
+  in_degree: if you want to count incoming relationships, set it to TRUE
+  out_degree: if you want to count outcoming relationships, set it to TRUE
+  top_k: report only this many top scores          print_accum: weather print the result
+  result_attr: attribute to write result to        file_path: file to write CSV output to
+  for undirected graph, you only need to set e_type and indegree
+   */
+  TYPEDEF TUPLE<VERTEX Vertex_ID, FLOAT score> Vertex_Score;
+  HeapAccum<Vertex_Score>(top_k, score DESC) @@top_scores_heap;
+  SumAccum<INT> @sum_degree_score;
+  FILE f (file_path);
+
+  all = {v_type};
+  sll = SELECT s 
+        FROM all:s
+        ACCUM IF in_degree THEN
+                 FOREACH edge_type in re_type DO
+                     s.@sum_degree_score+=s.outdegree(edge_type)
+                 END
+              END,
+              IF out_degree THEN
+                  FOREACH edge_type in e_type DO
+                      s.@sum_degree_score+=s.outdegree(edge_type)
+                  END
+              END;
+  #Output
+  IF file_path != "" THEN
+      f.println("Vertex_ID", "Degree");
+  END;
+
+  Start = SELECT s 
+          FROM all:s
+    POST-ACCUM
+        IF result_attr != "" THEN 
+                  s.setAttr(result_attr, s.@sum_degree_score) 
+              END,
+    
+        IF print_accum THEN 
+                  @@top_scores_heap += Vertex_Score(s, s.@sum_degree_score) 
+              END,
+    
+        IF file_path != "" THEN 
+                  f.println(s, s.@sum_degree_score) 
+              END;
+        
+   IF print_accum THEN
+       PRINT @@top_scores_heap AS top_scores;
+   END;
+}
+CREATE QUERY top_sendingwallets() FOR GRAPH kmtest API("v2") SYNTAX v2 {
+  TYPEDEF TUPLE<vertex<transaction> v, int f0> OrderTuple_2;
+
+  SetAccum<vertex> @Agg_2_wallet_count_set;
+  SumAccum<int> @Agg_2_wallet_count;
+  HeapAccum<OrderTuple_2>(10, f0 DESC) @@OrderHeap_2;
+  SetAccum<vertex<transaction>> @@OrderVertexSet_2;
+  SetAccum<vertex<Wallet>> @@FinalVertexSet_1;
+  SetAccum<vertex<transaction>> @@FinalVertexSet_2;
+
+  VertexSet_2 = 
+        SELECT t
+        FROM Wallet:wallet -(sending_payment>:alias_schema_3)- transaction:t
+        ACCUM t.@Agg_2_wallet_count_set += wallet
+        POST-ACCUM t.@Agg_2_wallet_count = t.@Agg_2_wallet_count_set.size(),
+                   @@OrderHeap_2 += OrderTuple_2(t, t.@Agg_2_wallet_count)
+        ;
+
+  WHILE (@@OrderHeap_2.size() > 0) DO
+    @@OrderVertexSet_2 += @@OrderHeap_2.pop().v;
+  END;
+  VertexSet_2 = { @@OrderVertexSet_2 };
+
+  VertexSet_2 = 
+        SELECT t
+        FROM Wallet:wallet -(sending_payment>:alias_schema_3)- VertexSet_2:t
+        POST-ACCUM @@FinalVertexSet_1 += wallet
+        POST-ACCUM @@FinalVertexSet_2 += t
+        ;
+
+  VertexSet_1 = { @@FinalVertexSet_1 };
+  PRINT VertexSet_1[
+    VertexSet_1.sum_in AS sum_in,
+    VertexSet_1.sum_out AS sum_out,
+    VertexSet_1.net_balance AS net_balance
+  ] AS wallet;
+
+  VertexSet_2 = { @@FinalVertexSet_2 };
+  PRINT VertexSet_2[
+    VertexSet_2.value AS value,
+    VertexSet_2.gas AS gas,
+    VertexSet_2.gas_price AS gas_price,
+    VertexSet_2.block_timestamp AS block_timestamp,
+    VertexSet_2.hash AS hash,
+    VertexSet_2.nonce AS nonce,
+    VertexSet_2.block_hash AS block_hash,
+    VertexSet_2.block_number AS block_number,
+    VertexSet_2.@Agg_2_wallet_count AS wallet_count
+  ] AS t;
+
+}
+CREATE QUERY largetransaction_test(int threshold) FOR GRAPH kmtest API("v2") SYNTAX v2 {
+
+
+  VertexSet_1 = 
+        SELECT alias_schema_1
+        FROM transaction:alias_schema_3 -(receiving_payment>:alias_schema_5)- Wallet:alias_schema_1,
+             Wallet:alias_schema_2 -(sending_payment>:alias_schema_4)- transaction:alias_schema_3
+        WHERE (alias_schema_3.value > threshold)
+        ;
+
+
+  PRINT VertexSet_1[
+    VertexSet_1.sum_in AS sum_in,
+    VertexSet_1.sum_out AS sum_out,
+    VertexSet_1.net_balance AS net_balance
+  ];
+
+}
+CREATE QUERY Eigenvectors(SET<STRING> v_type, SET<STRING> e_type, INT maxIter = 100, FLOAT convLimit = 0.000001,
+    INT top_k = 100, BOOL print_accum = True, STRING result_attr = "",STRING file_path = ""
+    ) SYNTAX V1 {
+    
+    /* Compute eigenvector Centrality for each VERTEX. 
+    Parameters:
+    v_type: vertex types to traverse                 
+    e_type: edge types to traverse                   
+    maxIter: max iteration
+    convLimit: convergence limitation
+    top_k: report only this many top scores          print_accum: weather print the result
+    result_attr: attribute to write result to        file_path: file to write CSV output to
+     */ 
+     
+    TYPEDEF TUPLE<VERTEX Vertex_ID, FLOAT score> Vertex_Score;
+    HeapAccum<Vertex_Score>(top_k, score DESC) @@top_scores_heap;
+    SumAccum<FLOAT> @@sum_squares_eigen_values;
+    SumAccum<FLOAT> @sum_received_value;
+    SumAccum<FLOAT> @sum_eigen_value = 1;
+    SumAccum<FLOAT> @@sum_cur_norm_values;
+    SumAccum<FLOAT> @@sum_prev_norm_values;
+    FLOAT conv_value = 9999;
+    FILE f (file_path);
+    Start = {v_type};
+    WHILE conv_value > convLimit LIMIT maxIter DO
+        @@sum_squares_eigen_values = 0;
+        @@sum_cur_norm_values = 0;
+        V = SELECT s 
+            FROM Start:s - (e_type:e) - v_type:t
+            ACCUM t.@sum_received_value += s.@sum_eigen_value
+            POST-ACCUM s.@sum_eigen_value = s.@sum_received_value,
+                       @@sum_squares_eigen_values += s.@sum_eigen_value * s.@sum_eigen_value,
+                       s.@sum_received_value = 0;
+        p = SELECT s 
+            FROM V:s 
+            LIMIT 10;
+       
+        V = SELECT s 
+            FROM V:s
+            POST-ACCUM s.@sum_eigen_value = s.@sum_eigen_value / sqrt(@@sum_squares_eigen_values),
+                       @@sum_cur_norm_values += s.@sum_eigen_value;
+        conv_value = abs(@@sum_cur_norm_values - @@sum_prev_norm_values);
+        @@sum_prev_norm_values = @@sum_cur_norm_values;
+                               
+    END;
+    #Output
+    IF file_path != "" THEN
+        f.println("Vertex_ID", "egien vector");
+    END;
+    Start = SELECT s 
+            FROM Start:s
+            ACCUM 
+                IF s.@sum_eigen_value==1.0 THEN 
+                    s.@sum_eigen_value+=-1 
+                END
+      POST-ACCUM 
+          IF result_attr != "" THEN 
+                    s.setAttr(result_attr, s.@sum_eigen_value) 
+                END,
+      
+    IF print_accum THEN 
+                    @@top_scores_heap += Vertex_Score(s, s.@sum_eigen_value) 
+                END,
+      
+    IF file_path != "" THEN 
+                    f.println(s, s.@sum_eigen_value) 
+                END;
+
+    IF print_accum THEN
+        PRINT @@top_scores_heap AS top_scores;
+    END;
+
+}
+CREATE QUERY MultiTransaction(/* Parameters here */) FOR GRAPH kmtest { 
+  /* Write query logic here */ 
+  PRINT "MultiTransaction works!"; 
+}
+CREATE QUERY InfluenceRank(STRING v_type,STRING e_type,STRING weight,INT top_k,
+  BOOL print_accum = True, STRING file_path = "")  SYNTAX V1 {
+
+  /* get the vertex which has maximum influence. 
+  Parameters:
+  v_type: vertex types to traverse                 
+  e_type: edge types to traverse                   
+  weight: enter weight attribute name
+  top_k: report only this many top scores          
+  file_path: file to write CSV output to
+  print_accum: weather print the result
+   */  
+  TYPEDEF TUPLE<VERTEX Vertex_ID, FLOAT score> Vertex_Score;
+  HeapAccum<Vertex_Score>(top_k, score DESC) @@top_scores_heap;
+  OrAccum @or_in_seed;
+  OrAccum @or_influenced;
+  SumAccum<FLOAT> @influence_value;
+  ListAccum<Vertex_Score> @@res_list;
+  VERTEX k;
+  FLOAT score;
+  BOOL skip=FALSE;
+  FILE f (file_path);
+  @@top_scores_heap.resize(top_k+3);
+  all = {v_type};
+  start = SELECT s 
+          FROM all:s-(e_type:e)-v_type:v 
+          ACCUM 
+              IF weight != ""  THEN 
+                  s.@influence_value+=e.getAttr(weight,"FLOAT") 
+              ELSE  
+                  s.@influence_value+=1 
+              END
+          POST-ACCUM @@top_scores_heap+=Vertex_Score(s,s.@influence_value),
+                     s.@influence_value=0;
+  @@res_list+=@@top_scores_heap.top();
+  k= @@top_scores_heap.pop().Vertex_ID;
+  temp = SELECT s 
+         FROM start:s-(e_type:e)-v_type:v 
+         WHERE s==k
+         ACCUM v.@or_influenced+=TRUE,s.@or_in_seed+=TRUE;
+  k= @@top_scores_heap.pop().Vertex_ID;
+  score = @@top_scores_heap.top().score;
+  WHILE @@res_list.size()<top_k DO
+      one = SELECT s 
+            FROM all:s-(e_type:e)-v_type:v 
+            WHERE s==k AND s.@or_in_seed == FALSE AND v.@or_influenced == FALSE
+            ACCUM 
+                IF weight != ""  THEN 
+                    s.@influence_value+=e.getAttr(weight,"FLOAT") 
+                ELSE  
+                    s.@influence_value+=1 
+                END 
+            POST-ACCUM 
+                IF s.@influence_value>=score THEN 
+                    @@res_list+=Vertex_Score(s,s.@influence_value),skip=TRUE 
+                END,
+                   s.@influence_value=0;
+      IF skip THEN 
+          skip=FALSE;
+          current = SELECT v 
+                FROM all:s-(e_type:e)-v_type:v 
+                WHERE s==k
+                ACCUM v.@or_influenced+=TRUE,s.@or_in_seed+=TRUE;
+          k= @@top_scores_heap.pop().Vertex_ID;
+          score = @@top_scores_heap.top().score;
+          CONTINUE;
+      END;
+      @@top_scores_heap.clear();
+      start = SELECT s 
+              FROM all:s-(e_type:e)-v_type:v 
+              WHERE s.@or_in_seed == FALSE and v.@or_influenced == FALSE 
+              ACCUM 
+                  IF weight != ""  THEN 
+                      s.@influence_value+=e.getAttr(weight,"FLOAT") 
+                  ELSE  
+                      s.@influence_value+=1 
+                  END
+              POST-ACCUM 
+                  @@top_scores_heap+=Vertex_Score(s,s.@influence_value),
+                  s.@influence_value=0;
+      @@res_list+=@@top_scores_heap.top();
+      k= @@top_scores_heap.pop().Vertex_ID;
+      temp = SELECT s 
+             FROM start:s-(e_type:e)-v_type:v 
+             WHERE s==k
+             ACCUM v.@or_influenced+=TRUE,
+                   s.@or_in_seed+=TRUE;
+      k= @@top_scores_heap.pop().Vertex_ID;
+      score = @@top_scores_heap.top().score;
+  END;
+  #Output
+  IF file_path != "" THEN
+      f.println("Vertex_ID", "Vertex Rank");
+      FOREACH i IN RANGE[0,@@res_list.size()-1] DO
+          f.println(@@res_list.get(i).Vertex_ID,i+1);
+      END;
+  END;
+  
+  IF print_accum THEN
+     PRINT @@res_list;
+  END;
+}
+CREATE QUERY WalletScore_Query(string target_wallet) FOR GRAPH kmtest API("v2") SYNTAX v2 {
+
+  SetAccum<vertex> @Agg_1_transaction_count_set;
+  SumAccum<int> @Agg_1_transaction_count;
+
+  VertexSet_1 = 
+        SELECT wallet
+        FROM Wallet:wallet -(sending_payment>:alias_schema_3)- transaction:t
+        WHERE (wallet.wallet_id == target_wallet)
+        ACCUM wallet.@Agg_1_transaction_count_set += t
+        POST-ACCUM wallet.@Agg_1_transaction_count = wallet.@Agg_1_transaction_count_set.size()
+        ORDER BY wallet.@Agg_1_transaction_count DESC
+        LIMIT 10
+        ;
+
+
+  PRINT VertexSet_1[
+    VertexSet_1.sum_in AS sum_in,
+    VertexSet_1.sum_out AS sum_out,
+    VertexSet_1.net_balance AS net_balance,
+    VertexSet_1.wallet_id AS wallet_id,
+    VertexSet_1.@Agg_1_transaction_count AS transaction_count
+  ] AS wallet;
+
+}
+CREATE QUERY top10_sending_wallets() FOR GRAPH kmtest API("v2") SYNTAX v2 {
+
+  SetAccum<vertex> @Agg_1_transaction_count_set;
+  SumAccum<int> @Agg_1_transaction_count;
+
+  VertexSet_1 = 
+        SELECT wallet
+        FROM Wallet:wallet -(sending_payment>:alias_schema_3)- transaction:t
+        ACCUM wallet.@Agg_1_transaction_count_set += t
+        POST-ACCUM wallet.@Agg_1_transaction_count = wallet.@Agg_1_transaction_count_set.size()
+        ORDER BY wallet.@Agg_1_transaction_count DESC
+        LIMIT 10
+        ;
+
+
+  PRINT VertexSet_1[
+    VertexSet_1.sum_in AS sum_in,
+    VertexSet_1.sum_out AS sum_out,
+    VertexSet_1.net_balance AS net_balance,
+    VertexSet_1.@Agg_1_transaction_count AS transaction_count
+  ] AS wallet;
+
+}
+CREATE QUERY HarmonicCentrality(SET<STRING> v_type, SET<STRING> e_type, SET<STRING> re_type,INT max_hops = 10,
+  INT top_k = 100, BOOL wf = TRUE, BOOL print_accum = True, STRING result_attr = "",
+  STRING file_path = "", BOOL display_edges = FALSE) SYNTAX V1 { 
+   
+  /* Compute Harmonic Centrality for each VERTEX. 
+  Use multi-sourse BFS.
+  Parameters:
+  v_type: vertex types to traverse                 print_accum: print JSON output
+  e_type: edge types to traverse                   result_attr: INT attr to store results to
+  re_type: reverse edge type in directed graph, in undirected graph set re_type=e_type
+  max_hops: look only this far from each vertex    file_path: file to write CSV output to
+  top_k: report only this many top scores          display_edges: output edges for visualization
+  wf: Wasserman and Faust normalization factor for multi-component graphs */ 
+  
+  TYPEDEF TUPLE<VERTEX Vertex_ID, FLOAT score> Vertex_Score; #tuple to store harmonic centrality score
+  HeapAccum<Vertex_Score>(top_k, score DESC) @@top_scores_heap; #heap to store top K score
+  SumAccum<INT> @@sum_curr_dist; #current distance
+  BitwiseOrAccum @bitwise_or_visit_next; #use bitwise instead of setAccum
+  SumAccum<FLOAT> @sum_res; #Result, sum of distance
+  SumAccum<INT> @sum_size; #get graph size
+  SumAccum<FLOAT> @sum_score;
+  BitwiseOrAccum @bitwise_or_seen;
+  BitwiseOrAccum @bitwise_or_visit; 
+  SumAccum<INT> @@sum_count = 1;#used to set unique ID
+  SumAccum<INT> @sum_id; #store the unique ID
+  SetAccum<INT> @@batch_set; #used to set unique ID
+  MapAccum<INT,INT> @@map; #used to set unique ID 
+  SetAccum<EDGE> @@edge_set;
+  INT empty=0;
+  FILE f (file_path);
+  INT num_vert;
+  INT batch_number;
+# Compute harmonic  
+  all = {v_type};
+  
+  num_vert = all.size();
+  batch_number = num_vert/60;
+  IF batch_number==0 THEN 
+      batch_number=1; 
+  END;
+    
+  #Calculate the sum of distance to other vertex for each vertex
+  FOREACH i IN RANGE[0, batch_number-1] DO
+      Start = SELECT s 
+              FROM all:s
+              WHERE getvid(s)%batch_number == i
+              POST-ACCUM @@map+=(getvid(s)->0),
+                         @@batch_set+=getvid(s);
+  
+      FOREACH ver in @@batch_set DO 
+          @@map+=(ver->@@sum_count); @@sum_count+=1;
+      END; #set a unique ID for each vertex, ID from 1-63
+    
+      Start = SELECT s 
+              FROM Start:s 
+              POST-ACCUM s.@sum_id=@@map.get(getvid(s));
+      Start = Select s 
+              FROM Start:s
+              POST-ACCUM s.@bitwise_or_seen=1<<s.@sum_id,
+                         s.@bitwise_or_visit=1<<s.@sum_id; # set initial seen and visit s.@seen1 s.@seen2 
+      @@batch_set.clear();
+      @@map.clear();
+      @@sum_count=0;
+      
+      WHILE (Start.size() > 0) LIMIT max_hops DO
+          @@sum_curr_dist+=1;
+          Start = SELECT t 
+                  FROM Start:s -(re_type:e)-v_type:t
+                  WHERE s.@bitwise_or_visit&-t.@bitwise_or_seen-1>0 and s!=t #use -t.@seen-1 to get the trverse of t.@seen
+                  ACCUM
+                      INT c = s.@bitwise_or_visit&-t.@bitwise_or_seen-1,
+                      IF c>0 THEN
+                          t.@bitwise_or_visit_next+=c,
+                          t.@bitwise_or_seen+=c
+                      END
+                  POST-ACCUM
+                      t.@bitwise_or_visit=t.@bitwise_or_visit_next,
+                      INT r = t.@bitwise_or_visit_next,
+                      WHILE r>0 DO 
+                          r=r&(r-1),
+                          t.@sum_res+=1.0/@@sum_curr_dist*1.0,
+                          t.@sum_size+=1 #count how many 1 in the number, same as setAccum,size()
+                      END,
+                      t.@bitwise_or_visit_next=0;
+      END;
+      @@sum_curr_dist=0;
+      Start = SELECT s 
+              FROM all:s 
+              POST-ACCUM s.@bitwise_or_seen=0,
+                         s.@bitwise_or_visit=0;
+  END;
+  
+  Start = SELECT s 
+          FROM all:s
+    # Calculate harmonic Centrality for each vertex
+          WHERE s.@sum_res>0
+          POST-ACCUM 
+              IF wf THEN 
+                  s.@sum_score = s.@sum_res*1.0/s.@sum_size*1.0
+              ELSE
+                  s.@sum_score = s.@sum_res*1.0 
+              END,
+    
+        IF result_attr != "" THEN 
+                  s.setAttr(result_attr, s.@sum_score) 
+              END,
+    
+        IF print_accum THEN 
+                  @@top_scores_heap += Vertex_Score(s, s.@sum_score) 
+              END,
+    
+        IF file_path != "" THEN 
+                  f.println(s, s.@sum_score) 
+              END;
+   #test
+
+   #Output
+   IF file_path != "" THEN
+       f.println("Vertex_ID", "Harmonic");
+   END;
+
+   IF print_accum THEN
+       PRINT @@top_scores_heap AS top_scores;
+       IF display_edges THEN
+           PRINT Start[Start.@sum_score];
+     Start = SELECT s
+       FROM Start:s -(e_type:e)-:t
+       ACCUM @@edge_set += e;
+       PRINT @@edge_set;
+             END;
+   END;
+}
+set exit_on_error = "true"

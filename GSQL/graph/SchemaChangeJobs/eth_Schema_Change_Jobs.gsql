@@ -1,0 +1,13 @@
+CREATE SCHEMA_CHANGE JOB local_schema_change_1482493851 {
+      ADD VERTEX eth_wallet(PRIMARY_ID id STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+      ADD DIRECTED EDGE edge_type_1(FROM eth_wallet, TO eth_wallet, hash STRING, value FLOAT);
+    }
+
+CREATE SCHEMA_CHANGE JOB local_schema_change_1517781417 {
+      DROP EDGE edge_type_1;
+    }
+
+CREATE SCHEMA_CHANGE JOB local_schema_change_23805853 {
+      ADD DIRECTED EDGE transaction(FROM eth_wallet, TO eth_wallet, hash STRING, value FLOAT);
+    }
+

@@ -1,0 +1,142 @@
+CREATE SCHEMA_CHANGE JOB local_schema_change_617043646 {
+      ADD VERTEX Wallet(PRIMARY_ID address STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+      ADD VERTEX transaction(PRIMARY_ID transaction_id STRING, value FLOAT, gas FLOAT, gas_price FLOAT, block_timestamp STRING, hash STRING, nonce INT, block_hash STRING, block_number INT) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+      ADD DIRECTED EDGE sending_payment(FROM Wallet, TO transaction) WITH REVERSE_EDGE="reverse_sending_payment";
+      ADD DIRECTED EDGE receiving_payment(FROM transaction, TO Wallet);
+    }
+
+CREATE SCHEMA_CHANGE JOB local_schema_change_1307984246 {
+      ADD VERTEX year(PRIMARY_ID transaction_id STRING, transaction_year DATETIME) WITH STATS="OUTDEGREE_BY_EDGETYPE", PRIMARY_ID_AS_ATTRIBUTE="false";
+      ADD VERTEX month(PRIMARY_ID transaction_id STRING, transaction_month DATETIME) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+      ADD VERTEX day(PRIMARY_ID transaction_id STRING, transaction_day DATETIME) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+      ADD VERTEX hour(PRIMARY_ID transaction_id STRING, transaction_hour DATETIME) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+      ADD VERTEX minute(PRIMARY_ID transaction_id STRING, transaction_minute DATETIME) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+      ADD VERTEX second(PRIMARY_ID transaction_id STRING, transaction_second DATETIME) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+      ADD VERTEX datetime_vertex(PRIMARY_ID transaction_id STRING, transaction_datetime DATETIME) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+      ADD UNDIRECTED EDGE datetime_edge(FROM transaction, TO datetime_vertex);
+      ADD UNDIRECTED EDGE year_edge(FROM datetime_vertex, TO year);
+      ADD UNDIRECTED EDGE month_edge(FROM datetime_vertex, TO month);
+      ADD UNDIRECTED EDGE day_edge(FROM datetime_vertex, TO day);
+      ADD UNDIRECTED EDGE hour_edge(FROM datetime_vertex, TO hour);
+      ADD UNDIRECTED EDGE minute_edge(FROM datetime_vertex, TO minute);
+      ADD UNDIRECTED EDGE second_edge(FROM datetime_vertex, TO second);
+    }
+
+CREATE SCHEMA_CHANGE JOB local_schema_change_1920668649 {
+      DROP VERTEX datetime_vertex;
+      DROP EDGE datetime_edge;
+      DROP EDGE year_edge;
+      DROP EDGE month_edge;
+      DROP EDGE day_edge;
+      DROP EDGE hour_edge;
+      DROP EDGE minute_edge;
+      DROP EDGE second_edge;
+    }
+
+CREATE SCHEMA_CHANGE JOB local_schema_change_863963384 {
+      ADD VERTEX datetime_vertex(PRIMARY_ID block_timestamp STRING, transaction_datetime DATETIME) WITH STATS="OUTDEGREE_BY_EDGETYPE", PRIMARY_ID_AS_ATTRIBUTE="false";
+      ADD UNDIRECTED EDGE datetime_edge(FROM transaction, TO datetime_vertex);
+      ADD UNDIRECTED EDGE year_edge(FROM datetime_vertex, TO year);
+      ADD UNDIRECTED EDGE month_edge(FROM datetime_vertex, TO month);
+      ADD UNDIRECTED EDGE day_edge(FROM datetime_vertex, TO day);
+      ADD UNDIRECTED EDGE hour_edge(FROM datetime_vertex, TO hour);
+      ADD UNDIRECTED EDGE minute_edge(FROM datetime_vertex, TO minute);
+      ADD UNDIRECTED EDGE second_edge(FROM datetime_vertex, TO second);
+    }
+
+CREATE SCHEMA_CHANGE JOB local_schema_change_468605237 {
+      DROP VERTEX hour;
+      DROP VERTEX minute;
+      DROP VERTEX second;
+      DROP VERTEX datetime_vertex;
+      DROP EDGE datetime_edge;
+      DROP EDGE year_edge;
+      DROP EDGE month_edge;
+      DROP EDGE day_edge;
+      DROP EDGE hour_edge;
+      DROP EDGE minute_edge;
+      DROP EDGE second_edge;
+      ALTER VERTEX year DROP ATTRIBUTE (transaction_year);
+      ALTER VERTEX month DROP ATTRIBUTE (transaction_month);
+      ALTER VERTEX day DROP ATTRIBUTE (transaction_day);
+    }
+
+CREATE SCHEMA_CHANGE JOB local_schema_change_1732420173 {
+      ALTER VERTEX year ADD ATTRIBUTE (transaction_year INT);
+      ALTER VERTEX month ADD ATTRIBUTE (transaction_month INT);
+      ALTER VERTEX day ADD ATTRIBUTE (transaction_day INT);
+    }
+
+CREATE SCHEMA_CHANGE JOB local_schema_change_1641855186 {
+      ADD UNDIRECTED EDGE year_edge(FROM transaction, TO year);
+      ADD UNDIRECTED EDGE month_edge(FROM transaction, TO month);
+      ADD UNDIRECTED EDGE day_edge(FROM transaction, TO day);
+    }
+
+CREATE SCHEMA_CHANGE JOB local_schema_change_234158296 {
+      DROP EDGE year_edge;
+      DROP EDGE month_edge;
+      DROP EDGE day_edge;
+    }
+
+CREATE SCHEMA_CHANGE JOB local_schema_change_2039982478 {
+      ADD DIRECTED EDGE year_edge(FROM transaction, TO year) WITH REVERSE_EDGE="reverse_year_edge";
+      ADD DIRECTED EDGE month_edge(FROM transaction, TO month) WITH REVERSE_EDGE="reverse_month_edge";
+      ADD DIRECTED EDGE day_edge(FROM transaction, TO day) WITH REVERSE_EDGE="reverse_day_edge";
+    }
+
+CREATE SCHEMA_CHANGE JOB local_schema_change_1064353864 {
+      DROP VERTEX year;
+      DROP VERTEX month;
+      DROP VERTEX day;
+      DROP EDGE year_edge;
+      DROP EDGE reverse_year_edge;
+      DROP EDGE month_edge;
+      DROP EDGE reverse_month_edge;
+      DROP EDGE day_edge;
+      DROP EDGE reverse_day_edge;
+    }
+
+CREATE SCHEMA_CHANGE JOB local_schema_change_795790197 {
+      ADD VERTEX year(PRIMARY_ID transaction_year INT) WITH STATS="OUTDEGREE_BY_EDGETYPE", PRIMARY_ID_AS_ATTRIBUTE="false";
+      ADD VERTEX month(PRIMARY_ID transaction_month INT) WITH STATS="OUTDEGREE_BY_EDGETYPE", PRIMARY_ID_AS_ATTRIBUTE="false";
+      ADD VERTEX day(PRIMARY_ID transaction_day INT) WITH STATS="OUTDEGREE_BY_EDGETYPE", PRIMARY_ID_AS_ATTRIBUTE="false";
+      ADD DIRECTED EDGE year_edge(FROM transaction, TO year) WITH REVERSE_EDGE="reverse_year_edge";
+      ADD DIRECTED EDGE month_edge(FROM transaction, TO month) WITH REVERSE_EDGE="reverse_month_edge";
+      ADD DIRECTED EDGE day_edge(FROM transaction, TO day) WITH REVERSE_EDGE="reverse_day_edge";
+    }
+
+CREATE SCHEMA_CHANGE JOB local_schema_change_1982952373 {
+      DROP EDGE year_edge;
+      DROP EDGE reverse_year_edge;
+      DROP EDGE month_edge;
+      DROP EDGE reverse_month_edge;
+      DROP EDGE day_edge;
+      DROP EDGE reverse_day_edge;
+    }
+
+CREATE SCHEMA_CHANGE JOB local_schema_change_984337848 {
+      ADD VERTEX block(PRIMARY_ID block_hash STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+      ADD DIRECTED EDGE year_edge(FROM block, TO year) WITH REVERSE_EDGE="reverse_year_edge";
+      ADD DIRECTED EDGE month_edge(FROM block, TO month) WITH REVERSE_EDGE="reverse_month_edge";
+      ADD DIRECTED EDGE day_edge(FROM block, TO day) WITH REVERSE_EDGE="reverse_day_edge";
+      ADD DIRECTED EDGE block_edge(FROM transaction, TO block) WITH REVERSE_EDGE="reverse_block_edge";
+    }
+
+CREATE SCHEMA_CHANGE JOB local_schema_change_92316492 {
+      ALTER VERTEX block ADD ATTRIBUTE (block_number INT);
+    }
+
+CREATE SCHEMA_CHANGE JOB local_schema_change_1542291374 {
+      ALTER VERTEX Wallet ADD ATTRIBUTE (balance FLOAT);
+    }
+
+CREATE SCHEMA_CHANGE JOB local_schema_change_204901107 {
+      ALTER VERTEX Wallet ADD ATTRIBUTE (sum_in FLOAT, sum_out FLOAT, net_balance FLOAT);
+      ALTER VERTEX Wallet DROP ATTRIBUTE (balance);
+    }
+
+CREATE SCHEMA_CHANGE JOB local_schema_change_1448623188 {
+      ALTER VERTEX Wallet ADD ATTRIBUTE (wallet_id STRING);
+    }
+

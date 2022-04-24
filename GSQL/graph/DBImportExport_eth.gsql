@@ -1,0 +1,228 @@
+CREATE GRAPH eth()
+CREATE SCHEMA_CHANGE JOB schema_change_job_AddExportedLocalVETypes_JT8B8XV85X78MVIO FOR GRAPH eth { 
+  ADD VERTEX eth_wallet(PRIMARY_ID id STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+  ADD DIRECTED EDGE transaction(FROM eth_wallet, TO eth_wallet, hash STRING, value FLOAT);
+}
+RUN SCHEMA_CHANGE JOB schema_change_job_AddExportedLocalVETypes_JT8B8XV85X78MVIO
+DROP JOB schema_change_job_AddExportedLocalVETypes_JT8B8XV85X78MVIO
+set exit_on_error = "false"
+CREATE LOADING JOB load_job_transactions0_500000_csv_1648025989455 FOR GRAPH eth {
+      DEFINE FILENAME MyDataSource;
+      LOAD MyDataSource TO VERTEX eth_wallet VALUES($5) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO EDGE transaction VALUES($5, $6, $0, $7) USING SEPARATOR=",", HEADER="true", EOL="\n";
+    }
+
+set exit_on_error = "true"
+set exit_on_error = "false"
+CREATE LOADING JOB load_job_transactions500001_1500000_csv_1648026160439 FOR GRAPH eth {
+      DEFINE FILENAME MyDataSource;
+      LOAD MyDataSource TO VERTEX eth_wallet VALUES($5) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO EDGE transaction VALUES($5, $6, $0, $7) USING SEPARATOR=",", HEADER="true", EOL="\n";
+    }
+
+set exit_on_error = "true"
+set exit_on_error = "false"
+CREATE LOADING JOB load_job_transactions_3000000_csv_1648030714180 FOR GRAPH eth {
+      DEFINE FILENAME MyDataSource;
+      LOAD MyDataSource TO VERTEX eth_wallet VALUES($5) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO VERTEX eth_wallet VALUES($5) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO EDGE transaction VALUES($5, $6, $0, $7) USING SEPARATOR=",", HEADER="true", EOL="\n";
+      LOAD MyDataSource TO EDGE transaction VALUES($5, $6, $0, $7) USING SEPARATOR=",", HEADER="true", EOL="\n";
+    }
+
+set exit_on_error = "true"
+set exit_on_error = "false"
+CREATE QUERY page_rank (STRING v_type, STRING e_type,
+ FLOAT max_change=0.001, INT max_iter=25, FLOAT damping=0.85, INT top_k = 100,
+ BOOL print_accum = TRUE, STRING result_attr =  "", STRING file_path = "",
+ BOOL display_edges = FALSE) SYNTAX V1 {
+
+/*
+ Compute the pageRank score for each vertex in the GRAPH
+ In each iteration, compute a score for each vertex:
+     score = (1-damping) + damping*sum(received scores FROM its neighbors).
+ The pageRank algorithm stops when either of the following is true:
+ a) it reaches max_iter iterations;
+ b) the max score change for any vertex compared to the last iteration <= max_change.
+ v_type: vertex types to traverse          print_accum: print JSON output
+ e_type: edge types to traverse            result_attr: INT attr to store results to
+ max_iter; max #iterations                 file_path: file to write CSV output to
+ top_k: #top scores to output              display_edges: output edges for visualization
+ max_change: max allowed change between iterations to achieve convergence
+ damping: importance of traversal vs. random teleport
+
+ This query supports only taking in a single edge for the time being (8/13/2020).
+*/
+TYPEDEF TUPLE<VERTEX Vertex_ID, FLOAT score> Vertex_Score;
+HeapAccum<Vertex_Score>(top_k, score DESC) @@top_scores_heap;
+MaxAccum<FLOAT> @@max_diff = 9999;    # max score change in an iteration
+SumAccum<FLOAT> @sum_recvd_score = 0; # sum of scores each vertex receives FROM neighbors
+SumAccum<FLOAT> @sum_score = 1;           # initial score for every vertex is 1.
+SetAccum<EDGE> @@edge_set;             # list of all edges, if display is needed
+FILE f (file_path);
+
+# PageRank iterations  
+Start = {v_type};                     # Start with all vertices of specified type(s)
+WHILE @@max_diff > max_change 
+    LIMIT max_iter DO
+        @@max_diff = 0;
+    V = SELECT s
+  FROM Start:s -(e_type:e)- v_type:t
+  ACCUM 
+            t.@sum_recvd_score += s.@sum_score/(s.outdegree(e_type)) 
+  POST-ACCUM 
+            s.@sum_score = (1.0-damping) + damping * s.@sum_recvd_score,
+      s.@sum_recvd_score = 0,
+      @@max_diff += abs(s.@sum_score - s.@sum_score');
+END; # END WHILE loop
+
+# Output
+IF file_path != "" THEN
+    f.println("Vertex_ID", "PageRank");
+END;
+V = SELECT s 
+    FROM Start:s
+    POST-ACCUM 
+        IF result_attr != "" THEN 
+            s.setAttr(result_attr, s.@sum_score) 
+        END,
+   
+  IF file_path != "" THEN 
+            f.println(s, s.@sum_score) 
+        END,
+   
+  IF print_accum THEN 
+            @@top_scores_heap += Vertex_Score(s, s.@sum_score) 
+        END;
+
+IF print_accum THEN
+    PRINT @@top_scores_heap;
+    IF display_edges THEN
+        PRINT Start[Start.@sum_score];
+  Start = SELECT s
+          FROM Start:s -(e_type:e)- v_type:t
+          ACCUM @@edge_set += e;
+        PRINT @@edge_set;
+    END;
+END;
+}
+CREATE QUERY Eigenvectors(SET<STRING> v_type, SET<STRING> e_type, INT maxIter = 100, FLOAT convLimit = 0.000001,
+    INT top_k = 100, BOOL print_accum = True, STRING result_attr = "",STRING file_path = ""
+    ) SYNTAX V1 {
+    
+    /* Compute eigenvector Centrality for each VERTEX. 
+    Parameters:
+    v_type: vertex types to traverse                 
+    e_type: edge types to traverse                   
+    maxIter: max iteration
+    convLimit: convergence limitation
+    top_k: report only this many top scores          print_accum: weather print the result
+    result_attr: attribute to write result to        file_path: file to write CSV output to
+     */ 
+     
+    TYPEDEF TUPLE<VERTEX Vertex_ID, FLOAT score> Vertex_Score;
+    HeapAccum<Vertex_Score>(top_k, score DESC) @@top_scores_heap;
+    SumAccum<FLOAT> @@sum_squares_eigen_values;
+    SumAccum<FLOAT> @sum_received_value;
+    SumAccum<FLOAT> @sum_eigen_value = 1;
+    SumAccum<FLOAT> @@sum_cur_norm_values;
+    SumAccum<FLOAT> @@sum_prev_norm_values;
+    FLOAT conv_value = 9999;
+    FILE f (file_path);
+    Start = {v_type};
+    WHILE conv_value > convLimit LIMIT maxIter DO
+        @@sum_squares_eigen_values = 0;
+        @@sum_cur_norm_values = 0;
+        V = SELECT s 
+            FROM Start:s - (e_type:e) - v_type:t
+            ACCUM t.@sum_received_value += s.@sum_eigen_value
+            POST-ACCUM s.@sum_eigen_value = s.@sum_received_value,
+                       @@sum_squares_eigen_values += s.@sum_eigen_value * s.@sum_eigen_value,
+                       s.@sum_received_value = 0;
+        p = SELECT s 
+            FROM V:s 
+            LIMIT 10;
+       
+        V = SELECT s 
+            FROM V:s
+            POST-ACCUM s.@sum_eigen_value = s.@sum_eigen_value / sqrt(@@sum_squares_eigen_values),
+                       @@sum_cur_norm_values += s.@sum_eigen_value;
+        conv_value = abs(@@sum_cur_norm_values - @@sum_prev_norm_values);
+        @@sum_prev_norm_values = @@sum_cur_norm_values;
+                               
+    END;
+    #Output
+    IF file_path != "" THEN
+        f.println("Vertex_ID", "egien vector");
+    END;
+    Start = SELECT s 
+            FROM Start:s
+            ACCUM 
+                IF s.@sum_eigen_value==1.0 THEN 
+                    s.@sum_eigen_value+=-1 
+                END
+      POST-ACCUM 
+          IF result_attr != "" THEN 
+                    s.setAttr(result_attr, s.@sum_eigen_value) 
+                END,
+      
+    IF print_accum THEN 
+                    @@top_scores_heap += Vertex_Score(s, s.@sum_eigen_value) 
+                END,
+      
+    IF file_path != "" THEN 
+                    f.println(s, s.@sum_eigen_value) 
+                END;
+
+    IF print_accum THEN
+        PRINT @@top_scores_heap AS top_scores;
+    END;
+
+}
+CREATE QUERY connections (VERTEX source, SET<STRING> e_type, SET<STRING> re_type, STRING weight, 
+  STRING label, INT top_k) RETURNS (STRING)  SYNTAX V1 {
+
+/* This subquery is k-nearest neighbors based on Cosine Similarity between a given vertex and every other vertex.
+Cosine similarity = A \dot B / ||A|| \dot ||B||
+*/
+    SumAccum<FLOAT> @sum_numerator, @@sum_norm1, @sum_norm2, @sum_similarity;
+    MapAccum<STRING, INT> @@count_map;
+    INT max_count = 0;
+    STRING predicted_label;
+
+    # calculate similarity and find the top k nearest neighbors
+    start = {source};
+    subjects = SELECT t
+               FROM start:s -(e_type:e)- :t
+               ACCUM t.@sum_numerator = e.getAttr(weight, "FLOAT"),
+                     @@sum_norm1 += pow(e.getAttr(weight, "FLOAT"), 2);
+
+    neighbours = SELECT t
+                 FROM subjects:s -(re_type:e)- :t
+                 WHERE t != source AND t.getAttr(label, "STRING") != ""    # only consider the ones with known label
+                 ACCUM t.@sum_numerator += s.@sum_numerator * e.getAttr(weight, "FLOAT");
+
+    kNN = SELECT s
+          FROM neighbours:s -(e_type:e)- :t
+          ACCUM s.@sum_norm2 += pow(e.getAttr(weight, "FLOAT"), 2)
+          POST-ACCUM s.@sum_similarity = s.@sum_numerator/sqrt(@@sum_norm1 * s.@sum_norm2)
+          ORDER BY s.@sum_similarity DESC
+          LIMIT top_k;
+
+    #predict label
+    kNN = SELECT s
+          FROM kNN:s
+          ACCUM @@count_map += (s.getAttr(label, "STRING") -> 1);
+
+    FOREACH (pred_label, cnt) IN @@count_map DO
+        IF cnt > max_count THEN
+            max_count = cnt;
+            predicted_label = pred_label;
+        END;
+    END;
+
+    PRINT predicted_label;
+    RETURN predicted_label;
+
+}
+set exit_on_error = "true"
