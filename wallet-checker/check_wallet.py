@@ -87,15 +87,8 @@ if query_to_run == "WalletScore_Query":
     score = score * 10 / max_score
 
     print(
-        f"The target wallet {target_wallet} has received a score of {score} out of 10.0. Please refer to the README for an interpretation of this score."
+        f"The target wallet {target_wallet} has received a score of {score} out of 10.0"
     )
-
-
-"""
-try:
-    float(score)
-    print(f"{target_wallet} has received a safety score of {score}/10")
-except ValueError as e:
-    print("Currently unable to retrieve a safety score for the target wallet")
-    print(f"ValueError: {e}")
-"""
+    print(
+        "Please refer to Appendix A in the README for an interpretation of this score."
+    )
