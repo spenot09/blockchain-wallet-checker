@@ -1,4 +1,10 @@
 # Welcome to the Blockchain Wallet Checker
+**Contributers and Contact Information:** spencer.collins@kubrickgroup.com, shijovarghese@kubrickgroup.com, kylemurray@kubrickgroup.com
+
+**Problem statement:** Graph for better finance - Empower and educate Consumers
+
+**Video Demo**: https://www.youtube.com/watch?v=Dkjjay-hwTY&ab_channel=SpencerCollins
+
 Hacks and other malicious activity are rampant within the DeFi and public blockchain space, leading to significant loss of funds to users. Users should be able to transact freely and with confidence on these public networks, without fear of: 
 - scams 
 - rug pulls (theft of funds by teams making false promises)
@@ -10,18 +16,18 @@ Blockchain Wallet Checker allows you to verify the safety of a target wallet bef
 This score is determined by a custom centrality algorithm that was designed after discovering a correlation  between healthy wallet activity on a network and its trustworthiness. After experimenting with several prebuilt solutions such as Eigen Vectors, Harmonic Centrality, and Page Rank amongst others, this correlated relationship is captured by examining the Degree of a specific target wallet within the network (currently Ethereum only but with scope to easily expand this).
 
 # Getting started
-Before you get started, please reach out to the team to get credentials to be able to access the TigerGraph database so as to allow the scores to be calculated. Without these credentials you will not be able to access the backend, and hence won't be able to use the tool.
+Before you get started, please reach out to the team to get credentials to be able to access the TigerGraph solution so as to allow the scores to be calculated. Without these credentials you will not be able to access the backend, and hence won't be able to use the tool.
 
-Ensure you have Microsoft C++ Build Tools installed (which can be installed here https://visualstudio.microsoft.com/visual-cpp-build-tools/) as some of the python libraries require it, otherwise you may have an error:
+Ensure you have Microsoft C++ Build Tools installed (which can be installed here https://visualstudio.microsoft.com/visual-cpp-build-tools/) as some of the python libraries require it, otherwise you may have an error when installing the dependencies:
 
 ```
 Microsoft Visual C++ 14.0 or greater is required. Get it with "Microsoft C++ Build Tools": https://visualstudio.microsoft.com/visual-cpp-build-tools/
 ```
 
-Please note, the below assumes that you already have the required data downloaded that will be loaded into the graph (currently the first couple million transactions on the Ethereum network). The base repo which has been forked contains instructions on how this data can be retrieved (https://github.com/blockchain-etl/ethereum-etl). For demo purposes, a sample dataset has been provided within this repo under `sample/`. However, using our default solution will already have the graph pre-configured.
+The base repo which has been forked contains instructions on how the initial data that has been loaded into TigerGraph was retrieved (https://github.com/blockchain-etl/ethereum-etl). The Blockchain Wallet Checker uses API Secrets specific to a particular TigerGraph instance hence recreating the solution would also require modification of these secrets. Thus it is far easier to get in touch with the team for the corresponding credentials in order for a quickstart.
 
 ## Step 1.
-1. Create a new python environment (for venv: https://python.land/virtual-environments/virtualenv, for conda: https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html)
+1. *Optionally* create a new python environment (for venv: https://python.land/virtual-environments/virtualenv, for conda: https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html)
 2. Clone this repository 
 3. Navigate to the root of the repo
 4. Install all requirements. 
@@ -68,10 +74,10 @@ Project details:
 ## Step 4.
 Now you can either run the tool via the command line or use the front-end.
 
-**Option 1:** To run with the command line, simply run the following with your target wallet as the input (e.g. `0x4c8945897E306fbE6Dd2d1d3062f33d0eCF753f8`). The query that will return the score is being explicitly set in order to allow future queries that calculate various scores to be implemented with ease. There is also a network flag that can be used to select various networks in the future. By default this is set to "ethereum":
+**Option 1:** To run with the command line, simply run the following with your target wallet as the input (e.g. replacing the ```<TARGET WALLET ADDRESS>``` with `0x52bc44d5378309ee2abf1539bf71de1b7d7be3b5`). The query that will return the score is being explicitly set in order to allow future queries that calculate various scores to be implemented with ease. There is also a network flag that can be used to select various networks in the future. By default this is set to "ethereum":
 
 ``` python:
-python wallet-checker/check_wallet.py --wallet <target eth wallet address> --query WalletScore_Query --network ethereum
+python wallet-checker/check_wallet.py --wallet <TARGET WALLET ADDRESS> --query WalletScore_Query --network ethereum
 ```
 
 Example wallets to try (currently due to cloud storage restraints only a subset of the Ethereum blockchain could be loaded in):
@@ -94,5 +100,12 @@ This will run a host locally on your machine. If you now navigate to http://127.
 
 Now you can enter your chosen wallet address to receive a score.
 
+**Option 3**: Navigate to the continuously hosted front-end on Azure (https://wallet-score.azurewebsites.net/). But this still requires the TigerGraph solution to be running in the background as explained in *Step 3*.
 
-
+# Appendix A
+The Blockchain Wallet Score can be divided into the following groups:
+- Scores between 0.0 and 1.0 are extremely unsafe wallets and should be heavily researched before interacted with. Best to avoid.
+- Scores less than 2.0 are considered to be untrusted and caution should be exercised.
+- Scores less than 4.0 may indicate wallets that have exhibited questionable activity at some point but are not a risk.
+- Scores less than 7.0 are wallets that have shown healthy network behaviour and can be considered trustworthy.
+- Scores greater than 7.0 are extremely healthy wallets and have demonstrated to be crucial to the network (e.g. Uniswap contracts, DeFi protocols, etc.).
